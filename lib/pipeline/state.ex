@@ -12,10 +12,17 @@ defmodule Pipeline.State do
           errors: [any()]
         }
 
+  @type result :: {:ok, any()} | {:error, any()}
+
   @typedoc """
-  A transform is an anonymous function or a tuple with module and function name.
+  A reducer is an anonymous function or a tuple with module and function name.
   """
-  @type transform :: (t(), any() -> t()) | {atom(), atom()}
+  @type reducer :: (any(), any() -> result()) | {atom(), atom()}
+
+  @typedoc """
+  A callback receives the a `State.t()` struct, some options. Any return is ignored.
+  """
+  @type callback :: (t(), any() -> any())
 
   alias Pipeline.TransformError
 
@@ -36,7 +43,7 @@ defmodule Pipeline.State do
   @doc """
   Updates a state with the given anonymous function
   """
-  @spec update(t(), transform(), any()) :: t()
+  @spec update(t(), reducer(), any()) :: t()
   def update(state, transform, options \\ nil)
 
   def update(%__MODULE__{valid?: true, value: value} = state, {module, fun}, options) do

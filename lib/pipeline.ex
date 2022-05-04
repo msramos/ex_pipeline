@@ -6,12 +6,10 @@ defmodule Pipeline do
 
   alias Pipeline.State
 
-  @type reducer :: State.transform()
-  @type callback :: (State.t() -> any())
   @type t :: %__MODULE__{
           state: State.t(),
-          reducers: [reducer()],
-          callbacks: [callback()]
+          reducers: [State.reducer()],
+          callbacks: [State.callback()]
         }
 
   @doc false
@@ -150,7 +148,7 @@ defmodule Pipeline do
   @doc """
   Creates a new pipeline with the given state, reducers and callbacks
   """
-  @spec new(State.t(), [reducer()], [callback()]) :: t()
+  @spec new(State.t(), [State.reducer()], [State.callback()]) :: t()
   def new(%State{} = state, reducers \\ [], callbacks \\ []) do
     %__MODULE__{state: state, reducers: reducers, callbacks: callbacks}
   end
@@ -158,7 +156,7 @@ defmodule Pipeline do
   @doc """
   Add a reducer to the given pipeline.
   """
-  @spec reduce(t(), reducer()) :: State.Pipeline.t()
+  @spec reduce(t(), State.reducer()) :: State.Pipeline.t()
   def reduce(%__MODULE__{} = pipeline, reducer) do
     %__MODULE__{pipeline | reducers: pipeline.reducers ++ [reducer]}
   end
@@ -166,15 +164,19 @@ defmodule Pipeline do
   @doc """
   Add a callback to the given pipeline
   """
-  @spec callback(t(), callback()) :: State.Pipeline.t()
+  @spec callback(t(), State.callback()) :: State.Pipeline.t()
   def callback(%__MODULE__{} = pipeline, callback) do
     %__MODULE__{pipeline | reducers: [callback | pipeline.callbacks]}
   end
 
   @doc """
   Executes the given pipeline.
+
+  A pipeline can be one of:
+  - `Pipeline.t()` struct
+  - A module that uses the `pipeline/2` macro
   """
-  @spec execute(State.Pipeline.t(), any) :: {:ok, any} | {:error, any}
+  @spec execute(State.Pipeline.t(), any) :: State.result()
   def execute(struct_or_mod, args \\ nil, options \\ nil)
 
   def execute(
