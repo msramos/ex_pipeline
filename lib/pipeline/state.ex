@@ -1,9 +1,25 @@
 defmodule Pipeline.State do
   @moduledoc """
-  Simple state management
+  Pipeline state management.
+
+  This module defines a struct that is used to keep track of the state of a pipeline: the initial value, the current
+  value, it's still valid (or not) and any error that may have occurred.
+
+  It also has functions to create and manipulate a state.
+
+  You probably won't need to interact with this module too often, since it's all managed by the pipeline engine. The
+  only part of a pipeline where this module is accessible is on callback functions.
   """
   defstruct [:initial_value, :value, :valid?, :errors]
 
+  @typedoc """
+  A struct that wraps metadata information about a pipeline.
+
+  * `initial_value` is the first ever value that is passed to the first step on a pipeline.
+  * `value` is the current value of the pipeline
+  * `valid?` is boolean indicating wether the pipeline is still valid (true) or not (false).
+  * `errors` is a list of all errors that may have happened during the execution of the pipeline.
+  """
   @type t :: %__MODULE__{
           initial_value: any(),
           value: any(),
@@ -12,6 +28,7 @@ defmodule Pipeline.State do
         }
 
   alias Pipeline.TransformError
+  alias Pipeline.Types
 
   @doc """
   Creates a new, valid, `%State{}` struct with the given initial value
@@ -27,8 +44,16 @@ defmodule Pipeline.State do
   end
 
   @doc """
-  Updates a state with the given anonymous function
+  Updates a state with the given function.
+
+  If everything goes well and the function returns an ok tuple, it will return an updated `%__MODULE__{}` struct.
+
+  If the function returns an error tuple, it will call `invalidate/1` or `invalidate/2` and return an updated and
+  invalid `%__MODULE__{}` struct.
+
+  Note that the function must return an ok/error tuple, otherwise a `Transform.Error` error is thrown.
   """
+  @spec update(t(), Types.reducer(), Types.options()) :: t()
   def update(state, transform, options \\ [])
 
   def update(%__MODULE__{valid?: true, value: value} = state, {module, fun}, options) do
@@ -64,8 +89,9 @@ defmodule Pipeline.State do
   end
 
   @doc """
-  Executes the given callback passing the `state` and `options`  as parameters.
+  Executes the given callback passing the `state` and `options` as parameters.
   """
+  @spec callback(t(), Types.reducer(), Types.options()) :: any()
   def callback(state, fun, options)
 
   def callback(state, {mod, fun}, options) do
@@ -85,7 +111,7 @@ defmodule Pipeline.State do
   end
 
   @doc """
-  Marks the given state as invalid and adds an error
+  Marks the given state as invalid and adds an error to the state.
   """
   @spec invalidate(t(), any) :: t()
   def invalidate(%__MODULE__{errors: errors} = state, error) do
