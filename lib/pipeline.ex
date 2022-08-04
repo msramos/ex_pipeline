@@ -70,16 +70,15 @@ defmodule Pipeline do
   alias Pipeline.Types
 
   @doc """
-  Returns a list of functions to be used as steps of a pipeline. These steps will be executed in the same order that
-  they appear on this list.
-  """
-  @callback __pipeline_steps__() :: [Types.reducer()]
+  Returns a list of tuple with two elements.
 
-  @doc """
-  Returns a list of functions to be used as callbacks of a pipeline. These callbacks will be executed in the same order
-  that they appear on this list.
+  The first element is a list of functions to be used as steps of a pipeline. These steps will be executed in the same
+  order that they appear on this list.
+
+  The second element is a list of functions to be used as callbacks of a pipeline. These callbacks will be executed in
+  the same order that they appear on this list.
   """
-  @callback __pipeline_callbacks__() :: [Types.callback()]
+  @callback __pipeline__() :: {[Types.reducer()], [Types.callback()]}
 
   defmacro __using__(_) do
     quote do
@@ -97,10 +96,7 @@ defmodule Pipeline do
       @behaviour unquote(__MODULE__)
 
       @impl unquote(__MODULE__)
-      def __pipeline_steps__, do: unquote(steps)
-
-      @impl unquote(__MODULE__)
-      def __pipeline_callbacks__, do: unquote(callbacks)
+      def __pipeline__, do: {unquote(steps), unquote(callbacks)}
 
       @spec execute(Pipeline.Types.args(), Pipeline.Types.options()) :: Pipeline.Types.result()
       def execute(value, options \\ []) do
@@ -150,8 +146,7 @@ defmodule Pipeline do
     ensure_valid_pipeline!(module)
 
     initial_state = State.new(value)
-    steps = apply(module, :__pipeline_steps__, [])
-    callbacks = apply(module, :__pipeline_callbacks__, [])
+    {steps, callbacks} = apply(module, :__pipeline__, [])
 
     final_state =
       Enum.reduce(steps, initial_state, fn reducer, curent_state ->
@@ -172,10 +167,9 @@ defmodule Pipeline do
   end
 
   defp ensure_valid_pipeline!(module) do
-    exports_steps? = function_exported?(module, :__pipeline_steps__, 0)
-    exports_callbacks? = function_exported?(module, :__pipeline_callbacks__, 0)
+    exports_pipeline_meta? = function_exported?(module, :__pipeline__, 0)
 
-    unless exports_steps? && exports_callbacks? do
+    unless exports_pipeline_meta? do
       raise(PipelineError, "Module #{module} is not a valid pipeline.")
     end
   end
