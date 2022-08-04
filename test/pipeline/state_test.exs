@@ -1,5 +1,5 @@
 defmodule Pipeline.StateTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias Pipeline.State
   alias Pipeline.TransformError
