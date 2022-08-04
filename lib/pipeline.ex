@@ -80,13 +80,15 @@ defmodule Pipeline do
   """
   @callback __pipeline__() :: {[Types.reducer()], [Types.callback()]}
 
+  @doc false
   defmacro __using__(_) do
     quote do
       @before_compile unquote(__MODULE__)
     end
   end
 
-  # Injects the Pipeline behaviour, the two required callbacks and an `execute/2` function
+  # "Injects the Pipeline behaviour, the two required callbacks and an `execute/2` function"
+  @doc false
   defmacro __before_compile__(env) do
     definitions = Module.definitions_in(env.module, :def)
     steps = filter_functions(env.module, definitions, "_step", 2)

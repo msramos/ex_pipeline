@@ -10,10 +10,14 @@ defmodule PipelineTest do
       {:ok, value + 1}
     end
 
+    def some_function, do: :ok
+
     def second_step(value, options) do
       send(self(), {:second, value, options})
       {:ok, value + 1}
     end
+
+    def another_function, do: :ok
 
     def single_callback(state, options) do
       send(self(), {:callback, state, options})
@@ -39,6 +43,26 @@ defmodule PipelineTest do
   end
 
   defmodule BadPipeline do
+  end
+
+  describe "code injection" do
+    test "target module has the __pipeline__/0 and execute/2 functions injected" do
+      assert function_exported?(__MODULE__.GoodPipeline, :__pipeline__, 0)
+      assert function_exported?(__MODULE__.GoodPipeline, :execute, 2)
+    end
+
+    test "the injected __pipeline__ returns only the matched functions for callbacks and steps" do
+      {steps, callbacks} = __MODULE__.GoodPipeline.__pipeline__()
+
+      assert steps == [
+               {__MODULE__.GoodPipeline, :first_step},
+               {__MODULE__.GoodPipeline, :second_step}
+             ]
+
+      assert callbacks == [
+               {__MODULE__.GoodPipeline, :single_callback}
+             ]
+    end
   end
 
   describe "execute/3" do
