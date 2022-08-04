@@ -142,6 +142,19 @@ defmodule Pipeline do
 
   @doc """
   Executes the pipeline defined by `module` with the given `value` and `options`.
+
+  First, all steps are executed in the same order that they were declared on their module. If one step fails, all
+  the steps that come after it will not be executed. The returned value from one step will be passed to the next step,
+  along with the given `options`.
+
+  After that, all callbacks are executed in the same order that they were declared on their module. They will
+  receive the final `%Pipeline.State{}` along with the given `options`. Their return values are ignored.
+
+  Once steps and callbacks are executed, the state is evaluated and then this function will returns an ok or error
+  tuple, depending wether or not the state is valid.
+
+  If the given `module` does not implement the required callbacks from `Pipeline` behaviour, a `PipelineError` will
+  be thrown.
   """
   @spec execute(module(), Types.args(), Types.options()) :: Types.result()
   def execute(module, value, options \\ []) do

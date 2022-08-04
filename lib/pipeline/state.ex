@@ -34,6 +34,11 @@ defmodule Pipeline.State do
 
   @doc """
   Creates a new, valid, `%State{}` struct with the given initial value
+
+  ## Examples
+
+      iex> Pipeline.State.new(%{id: 1})
+      %Pipeline.State{error: nil, executed_steps: [], initial_value: %{id: 1}, valid?: true, value: %{id: 1}}
   """
   @spec new(any()) :: t()
   def new(initial_value) do
@@ -47,7 +52,7 @@ defmodule Pipeline.State do
   end
 
   @doc """
-  Updates a state with the given function.
+  Updates a state with the given reducer.
 
   If everything goes well and the function returns an ok tuple, it will return an updated `%__MODULE__{}` struct.
 
@@ -88,7 +93,14 @@ defmodule Pipeline.State do
   end
 
   @doc """
-  Marks the given state as invalid
+  Marks the given state as invalid.
+
+  Since no errors are specified, the `error` field on the state becomes a generic error string.
+
+  ## Examples
+
+      iex> state = %Pipeline.State{valid?: true, error: nil} |> Pipeline.State.invalidate()
+      %Pipeline.State{error: "an error occured during the execution of the pipeline", valid?: false}
   """
   @spec invalidate(t()) :: t()
   def invalidate(%__MODULE__{} = state) do
@@ -101,8 +113,15 @@ defmodule Pipeline.State do
 
   @doc """
   Marks the given state as invalid and adds an error to the state.
+
+  The `error` field on the state will have the same value from the given error.
+
+  ## Examples
+
+      iex> state = %Pipeline.State{valid?: true, error: nil} |> Pipeline.State.invalidate(:bad_thing)
+      %Pipeline.State{error: :bad_thing, valid?: false}
   """
-  @spec invalidate(t(), any) :: t()
+  @spec invalidate(t(), any()) :: t()
   def invalidate(%__MODULE__{} = state, error) do
     %__MODULE__{state | valid?: false, error: error}
   end
