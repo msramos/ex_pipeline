@@ -10,7 +10,7 @@ defmodule Pipeline.State do
   You probably won't need to interact with this module too often, since it's all managed by the pipeline engine. The
   only part of a pipeline where this module is accessible is on callback functions.
   """
-  defstruct [:initial_value, :value, :valid?, :errors]
+  defstruct [:initial_value, :value, :valid?, :errors, :executed_steps]
 
   @typedoc """
   A struct that wraps metadata information about a pipeline.
@@ -19,12 +19,14 @@ defmodule Pipeline.State do
   * `value` is the current value of the pipeline
   * `valid?` is boolean indicating wether the pipeline is still valid (true) or not (false).
   * `errors` is a list of all errors that may have happened during the execution of the pipeline.
+  * `executed_steps` a list of all steps that were executed
   """
   @type t :: %__MODULE__{
           initial_value: any(),
           value: any(),
           valid?: boolean(),
-          errors: [any()]
+          errors: [any()],
+          executed_steps: [{module, atom}]
         }
 
   alias Pipeline.TransformError
@@ -39,7 +41,8 @@ defmodule Pipeline.State do
       initial_value: initial_value,
       value: initial_value,
       valid?: true,
-      errors: []
+      errors: [],
+      executed_steps: []
     }
   end
 
@@ -56,17 +59,13 @@ defmodule Pipeline.State do
   @spec update(t(), Types.reducer(), Types.options()) :: t()
   def update(state, transform, options \\ [])
 
-  def update(%__MODULE__{valid?: true, value: value} = state, {module, fun}, options) do
-    module
-    |> apply(fun, [value, options])
-    |> check_update(state)
-  end
+  def update(%__MODULE__{valid?: true, value: value} = state, {module, fun} = reducer, options) do
+    updated_state =
+      module
+      |> apply(fun, [value, options])
+      |> check_update(state)
 
-  def update(%__MODULE__{valid?: true, value: value} = state, transform, options)
-      when is_function(transform, 2) do
-    transform
-    |> apply([value, options])
-    |> check_update(state)
+    %__MODULE__{updated_state | executed_steps: state.executed_steps ++ [reducer]}
   end
 
   def update(%__MODULE__{valid?: false} = state, _transform, _options), do: state
