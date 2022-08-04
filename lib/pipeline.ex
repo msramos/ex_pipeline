@@ -163,8 +163,8 @@ defmodule Pipeline do
       %State{valid?: true, value: value} ->
         {:ok, value}
 
-      %State{errors: errors} ->
-        {:error, errors}
+      %State{error: error} ->
+        {:error, error}
     end
   end
 

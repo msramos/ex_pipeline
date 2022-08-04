@@ -73,13 +73,13 @@ defmodule PipelineTest do
       assert_received {:second, 1, opt: true}
 
       assert_received {:callback,
-                       %Pipeline.State{valid?: true, initial_value: 0, value: 2, errors: []},
+                       %Pipeline.State{valid?: true, initial_value: 0, value: 2, error: nil},
                        [opt: true]}
     end
 
     test "do not execute steps after a failure, but still call callbacks anyways" do
       result = Pipeline.execute(__MODULE__.PipelineWithError, 0)
-      assert result == {:error, ["Some error"]}
+      assert result == {:error, "Some error"}
       assert_received {:first, 0, []}
       refute_received {:second, 1, []}
 
@@ -88,7 +88,7 @@ defmodule PipelineTest do
                          valid?: false,
                          initial_value: 0,
                          value: 0,
-                         errors: ["Some error"]
+                         error: "Some error"
                        }, []}
     end
 

@@ -12,7 +12,7 @@ defmodule Pipeline.StateTest do
 
       assert state.initial_value == [1, 2, 3]
       assert state.value == [1, 2, 3]
-      assert state.errors == []
+      assert state.error == nil
       assert state.valid? == true
       assert state.executed_steps == []
     end
@@ -38,11 +38,11 @@ defmodule Pipeline.StateTest do
     end
 
     test "updates an state succesfully" do
-      state = %State{valid?: true, value: 10, initial_value: 0, errors: [], executed_steps: []}
+      state = %State{valid?: true, value: 10, initial_value: 0, error: nil, executed_steps: []}
 
       updated_state = State.update(state, {__MODULE__.Example1, :good}, 2)
 
-      assert updated_state.errors == []
+      assert updated_state.error == nil
       assert updated_state.value == [10, 2]
       assert updated_state.initial_value == 0
       assert updated_state.valid? == true
@@ -50,11 +50,11 @@ defmodule Pipeline.StateTest do
     end
 
     test "invalidates the state if step returns an error tuple" do
-      state = %State{valid?: true, value: 10, initial_value: 0, errors: [], executed_steps: []}
+      state = %State{valid?: true, value: 10, initial_value: 0, error: nil, executed_steps: []}
 
       updated_state = State.update(state, {__MODULE__.Example1, :error_message}, 2)
 
-      assert updated_state.errors == ["Something is not good"]
+      assert updated_state.error == "Something is not good"
       assert updated_state.value == 10
       assert updated_state.initial_value == 0
       assert updated_state.valid? == false
@@ -62,11 +62,11 @@ defmodule Pipeline.StateTest do
     end
 
     test "invalidates the state if step returns an :error atom" do
-      state = %State{valid?: true, value: 10, initial_value: 0, errors: [], executed_steps: []}
+      state = %State{valid?: true, value: 10, initial_value: 0, error: nil, executed_steps: []}
 
       updated_state = State.update(state, {__MODULE__.Example1, :error}, 2)
 
-      assert updated_state.errors == []
+      assert updated_state.error == "an error occured during the execution of the pipeline"
       assert updated_state.value == 10
       assert updated_state.initial_value == 0
       assert updated_state.valid? == false
@@ -78,7 +78,7 @@ defmodule Pipeline.StateTest do
         valid?: false,
         value: 10,
         initial_value: 0,
-        errors: ["Some error"],
+        error: :oh_no,
         executed_steps: []
       }
 
@@ -89,11 +89,11 @@ defmodule Pipeline.StateTest do
     end
 
     test "uses empty options by default" do
-      state = %State{valid?: true, value: 10, initial_value: 0, errors: [], executed_steps: []}
+      state = %State{valid?: true, value: 10, initial_value: 0, error: nil, executed_steps: []}
 
       updated_state = State.update(state, {__MODULE__.Example1, :good})
 
-      assert updated_state.errors == []
+      assert updated_state.error == nil
       assert updated_state.value == [10, []]
       assert updated_state.initial_value == 0
       assert updated_state.valid? == true
@@ -101,7 +101,7 @@ defmodule Pipeline.StateTest do
     end
 
     test "raises an error if transform does not return a tuple" do
-      state = %State{valid?: true, value: 10, initial_value: 0, errors: [], executed_steps: []}
+      state = %State{valid?: true, value: 10, initial_value: 0, error: nil, executed_steps: []}
 
       assert_raise TransformError,
                    "expected an ok or error tuple, got 10",

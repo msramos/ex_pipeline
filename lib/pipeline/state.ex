@@ -10,7 +10,7 @@ defmodule Pipeline.State do
   You probably won't need to interact with this module too often, since it's all managed by the pipeline engine. The
   only part of a pipeline where this module is accessible is on callback functions.
   """
-  defstruct [:initial_value, :value, :valid?, :errors, :executed_steps]
+  defstruct [:initial_value, :value, :valid?, :error, :executed_steps]
 
   @typedoc """
   A struct that wraps metadata information about a pipeline.
@@ -18,14 +18,14 @@ defmodule Pipeline.State do
   * `initial_value` is the first ever value that is passed to the first step on a pipeline.
   * `value` is the current value of the pipeline
   * `valid?` is boolean indicating wether the pipeline is still valid (true) or not (false).
-  * `errors` is a list of all errors that may have happened during the execution of the pipeline.
+  * `error` the error that may have happened during the execution of the pipeline.
   * `executed_steps` a list of all steps that were executed
   """
   @type t :: %__MODULE__{
           initial_value: any(),
           value: any(),
           valid?: boolean(),
-          errors: [any()],
+          error: any(),
           executed_steps: [{module, atom}]
         }
 
@@ -41,7 +41,7 @@ defmodule Pipeline.State do
       initial_value: initial_value,
       value: initial_value,
       valid?: true,
-      errors: [],
+      error: nil,
       executed_steps: []
     }
   end
@@ -92,14 +92,18 @@ defmodule Pipeline.State do
   """
   @spec invalidate(t()) :: t()
   def invalidate(%__MODULE__{} = state) do
-    %__MODULE__{state | valid?: false}
+    %__MODULE__{
+      state
+      | valid?: false,
+        error: "an error occured during the execution of the pipeline"
+    }
   end
 
   @doc """
   Marks the given state as invalid and adds an error to the state.
   """
   @spec invalidate(t(), any) :: t()
-  def invalidate(%__MODULE__{errors: errors} = state, error) do
-    %__MODULE__{state | valid?: false, errors: [error | errors]}
+  def invalidate(%__MODULE__{} = state, error) do
+    %__MODULE__{state | valid?: false, error: error}
   end
 end
