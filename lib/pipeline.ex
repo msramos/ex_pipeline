@@ -155,8 +155,8 @@ defmodule Pipeline do
         State.update(curent_state, reducer, options)
       end)
 
-    Enum.each(callbacks, fn callback ->
-      State.callback(final_state, callback, options)
+    Enum.each(callbacks, fn {mod, fun} ->
+      apply(mod, fun, [final_state, options])
     end)
 
     case final_state do

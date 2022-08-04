@@ -88,20 +88,6 @@ defmodule Pipeline.State do
   end
 
   @doc """
-  Executes the given callback passing the `state` and `options` as parameters.
-  """
-  @spec callback(t(), Types.reducer(), Types.options()) :: any()
-  def callback(state, fun, options)
-
-  def callback(state, {mod, fun}, options) do
-    apply(mod, fun, [state, options])
-  end
-
-  def callback(state, fun, options) when is_function(fun, 2) do
-    apply(fun, [state, options])
-  end
-
-  @doc """
   Marks the given state as invalid
   """
   @spec invalidate(t()) :: t()

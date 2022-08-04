@@ -110,21 +110,4 @@ defmodule Pipeline.StateTest do
                    end
     end
   end
-
-  describe "callback/3 - modules and functions" do
-    defmodule __MODULE__.Example2 do
-      def callback(state, options) do
-        send(self(), {:state, state, options})
-      end
-    end
-
-    test "calls a callback function succesfully" do
-      state = %State{valid?: true, value: 10, initial_value: 0, errors: []}
-      options = [opt: 123]
-
-      State.callback(state, {__MODULE__.Example2, :callback}, options)
-
-      assert_received {:state, ^state, [opt: 123]}
-    end
-  end
 end
