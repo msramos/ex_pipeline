@@ -33,7 +33,7 @@ defmodule Pipeline.State do
   alias Pipeline.Types
 
   @doc """
-  Creates a new, valid, `%State{}` struct with the given initial value
+  Creates a new, valid, `%Pipeline.State{}` struct with the given initial value
 
   ## Examples
 
@@ -54,10 +54,10 @@ defmodule Pipeline.State do
   @doc """
   Updates a state with the given reducer.
 
-  If everything goes well and the function returns an ok tuple, it will return an updated `%__MODULE__{}` struct.
+  If everything goes well and the function returns an ok tuple, it will return an updated `%Pipeline.State{}` struct.
 
   If the function returns an error tuple, it will call `invalidate/1` or `invalidate/2` and return an updated and
-  invalid `%__MODULE__{}` struct.
+  invalid `%Pipeline.State{}` struct.
 
   Note that the function must return an ok/error tuple, otherwise a `Transform.Error` error is thrown.
   """
