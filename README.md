@@ -1,8 +1,11 @@
-![CI](https://github.com/msramos/ex_pipeline/actions/workflows/ci.yml/badge.svg)
-
 # ExPipeline
 
-An opinionated library to build better pipelines.
+![Build Status](https://github.com/msramos/ex_pipeline/actions/workflows/ci.yml/badge.svg?branch=main)
+[![Module Version](https://img.shields.io/hexpm/v/ex_pipeline.svg)](https://hex.pm/packages/ex_pipeline)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/ex_pipeline/)
+[![License](https://img.shields.io/hexpm/l/ex_pipeline.svg)](https://github.com/msramos/ex_pipeline/blob/main/LICENSE)
+
+ExPipeline is an opinionated library to build better pipelines.
 
 A pipeline is set of functions that must be executed in a specific order to transform an initial state into a desired
 state. For example, a "login pipeline" uses the request body as its initial state and generates an authentication token.
@@ -141,7 +144,7 @@ by adding `ex_pipeline` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ex_pipeline, "~> 0.1.0"}
+    {:ex_pipeline, "~> 0.2.0"}
   ]
 end
 ```
