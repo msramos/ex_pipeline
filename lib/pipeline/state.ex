@@ -99,7 +99,7 @@ defmodule Pipeline.State do
 
   ## Examples
 
-      iex> state = %Pipeline.State{valid?: true, error: nil} |> Pipeline.State.invalidate()
+      iex> %Pipeline.State{valid?: true, error: nil} |> Pipeline.State.invalidate()
       %Pipeline.State{error: "an error occured during the execution of the pipeline", valid?: false}
   """
   @spec invalidate(t()) :: t()
@@ -118,7 +118,7 @@ defmodule Pipeline.State do
 
   ## Examples
 
-      iex> state = %Pipeline.State{valid?: true, error: nil} |> Pipeline.State.invalidate(:bad_thing)
+      iex> %Pipeline.State{valid?: true, error: nil} |> Pipeline.State.invalidate(:bad_thing)
       %Pipeline.State{error: :bad_thing, valid?: false}
   """
   @spec invalidate(t(), any()) :: t()
