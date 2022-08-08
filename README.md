@@ -28,7 +28,7 @@ defmodule MyFeature do
     ...
   end
 
-  def reporter_callback(%Pipeline.State{} = state, options) do
+  def reporter_async_hook(%Pipeline.State{} = state, options) do
     ...
   end
 end
@@ -59,13 +59,19 @@ How does this work?
 
 - The target module **must** `use Pipeline`.
 - Any function whose name ends with `_step` is considered a step in the pipeline, they **must** accept two parameters.
+  - The first parameter is whatever was passed to the pipeline, and each step transforms this value to the next value.
+  - The second parameter is an optional and immutable keyword list that is passed to all steps.
 - Steps are executed in the same order that they are declared.
-- A step **must** return an on/error tuple - `{:ok, any}` or `{:error, any}`
-- If one step fails, the next steps are not executed
-- After all steps are executed, the pipeline will execute all __callbacks__.
-- A callback is a function whose name ends with `_callback`, and just like steps, they **must** accept two parameters.
-  The difference is that callbacks receive the final `Pipeline.State` struct with the execution result. Callback returns
-  are ignored.
+- A step **must** return an on/error tuple - `{:ok, any}` or `{:error, any}`.
+- If one step fails, the next steps are not executed.
+- Async hooks are functions whose name end with `_async_hook` and hooks are functions whose name end with `_hook`.
+- After all steps are executed, the pipeline will launch all __async hooks__ on isolated processes, and run them in
+  parallel.
+- After all steps are executed, the pipeline will execute all __hooks__.
+- Both types of hooks  **must** accept two parameters. The difference is that hooks receive the final `Pipeline.State`
+struct with the execution result. Hooks return are ignored.
+  - The first parameter is the last version of the `Pipeline.State` struct from the evaluation of the last step.
+  - The second parameter is the same optional and immutable keyword list that is passed to all step.
 
 ## Why?
 
@@ -138,8 +144,8 @@ Inside `Checkout`, all functions will look the same, and any modifications must 
 
 ## Installation
 
-If [available in Hex](https://hex.pm/packages/ex_pipeline), the package can be installed
-by adding `ex_pipeline` to your list of dependencies in `mix.exs`:
+Add the [Hex package](https://hex.pm/packages/ex_pipeline) by adding `ex_pipeline` to your list of dependencies in
+`mix.exs`:
 
 ```elixir
 def deps do
@@ -148,6 +154,8 @@ def deps do
   ]
 end
 ```
+
+Then make sure the `ex_pipeline` application is being loaded.
 
 ## Code of Conduct
 

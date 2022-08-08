@@ -20,6 +20,7 @@ defmodule ExPipeline.MixProject do
 
   def application do
     [
+      mod: {Pipeline.Application, []},
       extra_applications: [:logger]
     ]
   end

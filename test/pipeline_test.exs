@@ -5,40 +5,48 @@ defmodule PipelineTest do
   defmodule GoodPipeline do
     use Pipeline
 
-    def first_step(value, options) do
-      send(self(), {:first, value, options})
+    def first_step(value, _options) do
+      send(self(), {:first, value})
       {:ok, value + 1}
     end
 
     def some_function, do: :ok
 
-    def second_step(value, options) do
-      send(self(), {:second, value, options})
+    def second_step(value, _options) do
+      send(self(), {:second, value})
       {:ok, value + 1}
     end
 
     def another_function, do: :ok
 
-    def single_callback(state, options) do
-      send(self(), {:callback, state, options})
+    def single_hook(state, _options) do
+      send(self(), {:hook, state})
+    end
+
+    def single_async_hook(state, options) do
+      send(options[:parent_pid], {:async_hook, state})
     end
   end
 
   defmodule PipelineWithError do
     use Pipeline
 
-    def first_step(value, options) do
-      send(self(), {:first, value, options})
+    def first_step(value, _options) do
+      send(self(), {:first, value})
       {:error, "Some error"}
     end
 
-    def second_step(value, options) do
-      send(self(), {:second, value, options})
+    def second_step(value, _options) do
+      send(self(), {:second, value})
       {:ok, value + 1}
     end
 
-    def single_callback(state, options) do
-      send(self(), {:callback, state, options})
+    def single_hook(state, _options) do
+      send(self(), {:hook, state})
+    end
+
+    def single_async_hook(state, options) do
+      send(options[:parent_pid], {:async_hook, state})
     end
   end
 
@@ -51,45 +59,60 @@ defmodule PipelineTest do
       assert function_exported?(__MODULE__.GoodPipeline, :execute, 2)
     end
 
-    test "the injected __pipeline__ returns only the matched functions for callbacks and steps" do
-      {steps, callbacks} = __MODULE__.GoodPipeline.__pipeline__()
+    test "the injected __pipeline__ returns only the matched functions for steps, hooks and async hooks" do
+      {steps, hooks, async_hooks} = __MODULE__.GoodPipeline.__pipeline__()
 
       assert steps == [
                {__MODULE__.GoodPipeline, :first_step},
                {__MODULE__.GoodPipeline, :second_step}
              ]
 
-      assert callbacks == [
-               {__MODULE__.GoodPipeline, :single_callback}
+      assert hooks == [
+               {__MODULE__.GoodPipeline, :single_hook}
+             ]
+
+      assert async_hooks == [
+               {__MODULE__.GoodPipeline, :single_async_hook}
              ]
     end
   end
 
   describe "execute/3" do
-    test "executes all steps and callbacks in a module" do
-      result = Pipeline.execute(__MODULE__.GoodPipeline, 0, opt: true)
-      assert result == {:ok, 2}
-      assert_received {:first, 0, opt: true}
-      assert_received {:second, 1, opt: true}
+    test "executes all steps and hooks in a module" do
+      result = Pipeline.execute(__MODULE__.GoodPipeline, 10, parent_pid: self())
+      assert result == {:ok, 12}
+      assert_receive {:first, 10}
+      assert_receive {:second, 11}
 
-      assert_received {:callback,
-                       %Pipeline.State{valid?: true, initial_value: 0, value: 2, error: nil},
-                       [opt: true]}
+      assert_receive {:hook,
+                      %Pipeline.State{valid?: true, initial_value: 10, value: 12, error: nil}}
+
+      assert_receive {:async_hook,
+                      %Pipeline.State{valid?: true, initial_value: 10, value: 12, error: nil}}
     end
 
-    test "do not execute steps after a failure, but still call callbacks anyways" do
-      result = Pipeline.execute(__MODULE__.PipelineWithError, 0)
+    test "do not execute steps after a failure, but still call hooks anyways" do
+      result = Pipeline.execute(__MODULE__.PipelineWithError, 0, parent_pid: self())
       assert result == {:error, "Some error"}
-      assert_received {:first, 0, []}
-      refute_received {:second, 1, []}
 
-      assert_received {:callback,
-                       %Pipeline.State{
-                         valid?: false,
-                         initial_value: 0,
-                         value: 0,
-                         error: "Some error"
-                       }, []}
+      assert_receive {:first, 0}
+      refute_receive {:second, 1}
+
+      assert_receive {:hook,
+                      %Pipeline.State{
+                        valid?: false,
+                        initial_value: 0,
+                        value: 0,
+                        error: "Some error"
+                      }}
+
+      assert_receive {:async_hook,
+                      %Pipeline.State{
+                        valid?: false,
+                        initial_value: 0,
+                        value: 0,
+                        error: "Some error"
+                      }}
     end
 
     test "fails if pipeline is invalid" do

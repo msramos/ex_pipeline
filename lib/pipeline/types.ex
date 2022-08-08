@@ -26,5 +26,10 @@ defmodule Pipeline.Types do
   @typedoc """
   A function that is always called after the pipeline finishes the execution.
   """
-  @type callback :: (Pipeline.State.t(), options -> any())
+  @type hook :: (Pipeline.State.t(), options -> any())
+
+  @typedoc """
+  A function that is always called after the pipeline finishes the execution, but asynchronously.
+  """
+  @type async_hook :: hook()
 end

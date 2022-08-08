@@ -11,7 +11,7 @@ defmodule Pipeline do
   ## Creating a pipeline
 
   To create a new feature as a pipeline, you can simply `use Pipeline` in the target module and start writing
-  functions: steps and callbacks.
+  functions: steps and hooks.
 
   ### Pipeline Steps
 
@@ -22,13 +22,18 @@ defmodule Pipeline do
     - The first parameter is the value that's being transformed by each step
     - The second parameter are optional values and it's immutable
 
-  ### Pipeline Callbacks
+  ### Pipeline Hooks
 
-  - Callbacks are executed in the same order that they are declared in the module.
-  - Any function that ends with  `_callback` and accepts two parameters is considered a callback in the pipeline.
-  - Callbacks receive the final state of the pipeline, and they are always executed after all steps.
+  - Hooks are executed in the same order that they are declared in the module.
+  - Any function that ends with  `_hook` and accepts two parameters is considered a hook in the pipeline.
+  - Hooks receive the final state of the pipeline, and they are always executed after all steps.
     - The first parameter is the final state as defined by the `%Pipeline.State{}` struct.
     - The second parameter are optional values and it's immutable, the same used by the steps.
+
+  ### Async Hooks
+  - They're just like hooks, but the function name must end with `_async_hook`
+  - They are launched on isolated processes to processed asynchronously, after all steps are done and before the
+    hooks start being executed.
 
   ## Example
 
@@ -70,15 +75,18 @@ defmodule Pipeline do
   alias Pipeline.Types
 
   @doc """
-  Returns a list of tuple with two elements.
+  Returns a list of tuple with three elements.
 
   The first element is a list of functions to be used as steps of a pipeline. These steps will be executed in the same
   order that they appear on this list.
 
-  The second element is a list of functions to be used as callbacks of a pipeline. These callbacks will be executed in
+  The second element is a list of functions to be used as hooks of a pipeline. These hooks will be executed in
   the same order that they appear on this list.
+
+  The third element is a list of functions to be used as async hooks of a pipeline. The order of execution is not
+  guaranteed.
   """
-  @callback __pipeline__() :: {[Types.reducer()], [Types.callback()]}
+  @callback __pipeline__() :: {[Types.reducer()], [Types.hook()], [Types.async_hook()]}
 
   @doc false
   defmacro __using__(_) do
@@ -91,14 +99,15 @@ defmodule Pipeline do
   @doc false
   defmacro __before_compile__(env) do
     definitions = Module.definitions_in(env.module, :def)
-    steps = filter_functions(env.module, definitions, "_step", 2)
-    callbacks = filter_functions(env.module, definitions, "_callback", 2)
+    {steps, definitions} = filter_functions(env.module, definitions, "_step", 2)
+    {async_hooks, definitions} = filter_functions(env.module, definitions, "_async_hook", 2)
+    {hooks, _definitions} = filter_functions(env.module, definitions, "_hook", 2)
 
     quote do
       @behaviour unquote(__MODULE__)
 
       @impl unquote(__MODULE__)
-      def __pipeline__, do: {unquote(steps), unquote(callbacks)}
+      def __pipeline__, do: {unquote(steps), unquote(hooks), unquote(async_hooks)}
 
       @spec execute(Pipeline.Types.args(), Pipeline.Types.options()) :: Pipeline.Types.result()
       def execute(value, options \\ []) do
@@ -108,8 +117,8 @@ defmodule Pipeline do
   end
 
   defp filter_functions(module, definitions, suffix, expected_arity) do
-    functions =
-      Enum.reduce(definitions, [], fn {function, arity}, acc ->
+    {filtered, remaining} =
+      Enum.reduce(definitions, {[], []}, fn {function, arity} = fa, {acc, remaining} ->
         valid_name? =
           function
           |> Atom.to_string()
@@ -120,7 +129,7 @@ defmodule Pipeline do
         cond do
           valid_name? and has_expected_args? ->
             {_, _, [line: line], _} = Module.get_definition(module, {function, arity})
-            [{module, function, line} | acc]
+            {[{module, function, line} | acc], remaining}
 
           valid_name? ->
             raise(
@@ -129,15 +138,18 @@ defmodule Pipeline do
             )
 
           true ->
-            acc
+            {acc, [fa | remaining]}
         end
       end)
 
-    functions
-    # order by line number
-    |> Enum.sort(fn {_, _, a}, {_, _, b} -> a <= b end)
-    # drop line number
-    |> Enum.map(fn {m, f, _l} -> {m, f} end)
+    filtered =
+      filtered
+      # order by line number
+      |> Enum.sort(fn {_, _, a}, {_, _, b} -> a <= b end)
+      # drop line number
+      |> Enum.map(fn {m, f, _l} -> {m, f} end)
+
+    {filtered, remaining}
   end
 
   @doc """
@@ -147,10 +159,13 @@ defmodule Pipeline do
   the steps that come after it will not be executed. The returned value from one step will be passed to the next step,
   along with the given `options`.
 
-  After that, all callbacks are executed in the same order that they were declared on their module. They will
+  Then all async hooks are triggered and executed asynchronously in their own process. They will receive the final
+  `%Pipeline.State{}` along with the given `options`. Their return values are ignored.
+
+  After that, all hooks are executed in the same order that they were declared on their module. They will
   receive the final `%Pipeline.State{}` along with the given `options`. Their return values are ignored.
 
-  Once steps and callbacks are executed, the state is evaluated and then this function will returns an ok or error
+  Once steps and hooks are executed, the state is evaluated and then this function will returns an ok or error
   tuple, depending wether or not the state is valid.
 
   If the given `module` does not implement the required callbacks from `Pipeline` behaviour, a `PipelineError` will
@@ -161,14 +176,23 @@ defmodule Pipeline do
     ensure_valid_pipeline!(module)
 
     initial_state = State.new(value)
-    {steps, callbacks} = apply(module, :__pipeline__, [])
+    {steps, hooks, async_hooks} = apply(module, :__pipeline__, [])
 
+    # Process state
     final_state =
       Enum.reduce(steps, initial_state, fn reducer, curent_state ->
         State.update(curent_state, reducer, options)
       end)
 
-    Enum.each(callbacks, fn {mod, fun} ->
+    # Launch async hooks
+    Enum.each(async_hooks, fn {mod, fun} ->
+      Task.Supervisor.async_nolink(Pipeline.TaskSupervisor, fn ->
+        apply(mod, fun, [final_state, options])
+      end)
+    end)
+
+    # Execute hooks
+    Enum.each(hooks, fn {mod, fun} ->
       apply(mod, fun, [final_state, options])
     end)
 
