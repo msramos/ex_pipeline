@@ -55,23 +55,37 @@ case MyFeature.execute(params, options) do
 end
 ```
 
-How does this work?
+## Creating Pipelines
 
-- The target module **must** `use Pipeline`.
-- Any function whose name ends with `_step` is considered a step in the pipeline, they **must** accept two parameters.
-  - The first parameter is whatever was passed to the pipeline, and each step transforms this value to the next value.
-  - The second parameter is an optional and immutable keyword list that is passed to all steps.
-- Steps are executed in the same order that they are declared.
-- A step **must** return an on/error tuple - `{:ok, any}` or `{:error, any}`.
-- If one step fails, the next steps are not executed.
-- Async hooks are functions whose name end with `_async_hook` and hooks are functions whose name end with `_hook`.
-- After all steps are executed, the pipeline will launch all __async hooks__ on isolated processes, and run them in
-  parallel.
-- After all steps are executed, the pipeline will execute all __hooks__.
-- Both types of hooks  **must** accept two parameters. The difference is that hooks receive the final `Pipeline.State`
+To create a pipeline, the target module **must** `use Pipeline`, and the functions must follow some patterns.
+
+* Functions that are part of the pipeline must end with `_step`, `_hook` or `_async_hook`.
+* They must accepts two parameters
+
+### Steps
+
+Each step modify a _state_. The result of one step is given to the next step, until the last step. Then the result
+is evaluated and returned.
+
+* Steps are executed in the same order that they are declared.
+* The first parameter is whatever was passed to the pipeline, and each step transforms this value to the next value.
+* The second parameter is an optional and immutable keyword list that is passed to all steps.
+* A step **must** return an on/error tuple - `{:ok, any}` or `{:error, any}`.
+* If one step fails, the next steps are not executed.
+
+### Hooks and Async Hooks
+
+Hooks and async hooks are executed after all steps have completed, regardless of their result.
+
+* Async hooks are functions whose name end with `_async_hook` and hooks are functions whose name end with `_hook`.
+* Both types of hooks  **must** accept two parameters. The difference is that hooks receive the final `Pipeline.State`
 struct with the execution result. Hooks return are ignored.
-  - The first parameter is the last version of the `Pipeline.State` struct from the evaluation of the last step.
-  - The second parameter is the same optional and immutable keyword list that is passed to all step.
+  * The first parameter is the last version of the `Pipeline.State` struct from the evaluation of the last step.
+  * The second parameter is the same optional and immutable keyword list that is passed to all step.
+* After all steps are executed, the pipeline will launch all __async hooks__ on isolated processes, and run them in
+  parallel.
+* After all steps are executed, the pipeline will execute all __hooks__, in the same order that they were declared.
+
 
 ## Why?
 
