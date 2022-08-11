@@ -103,6 +103,15 @@ defmodule Pipeline do
     {async_hooks, definitions} = filter_functions(env.module, definitions, "_async_hook", 2)
     {hooks, _definitions} = filter_functions(env.module, definitions, "_hook", 2)
 
+    module_name = env.module |> Atom.to_string() |> String.slice(7..-1)
+    docs = """
+    Execute the `#{module_name}` pipeline.
+
+    This function is a shorthand for `Pipeline.execute(#{module_name}, value, options)`
+
+    See `Pipeline.execute/3` for more details.
+    """
+
     quote do
       @behaviour unquote(__MODULE__)
 
@@ -110,13 +119,7 @@ defmodule Pipeline do
       @impl unquote(__MODULE__)
       def __pipeline__, do: {unquote(steps), unquote(hooks), unquote(async_hooks)}
 
-      @doc """
-      Execute the #{unquote(__CALLER__)} pipeline.
-
-      This function is a shorthand for `Pipeline.execute(#{unquote(__CALLER__)}, value, options)`
-
-      See `Pipeline.execute/3` for more details.
-      """
+      @doc unquote(docs)
       @spec execute(Pipeline.Types.args(), Pipeline.Types.options()) :: Pipeline.Types.result()
       def execute(value, options \\ []) do
         apply(unquote(__MODULE__), :execute, [__MODULE__, value, options])

@@ -1,6 +1,9 @@
 # Changelog for `ex_pipeline`
 ## v0.3.0
 
+### New Features
+- Injected functions now have docs
+
 ### Fixed
 - Fixed misleading type specs
 
