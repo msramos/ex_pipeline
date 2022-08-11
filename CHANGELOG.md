@@ -1,4 +1,9 @@
 # Changelog for `ex_pipeline`
+## v0.3.0
+
+### Fixed
+- Fixed misleading type specs
+
 ## v0.2.0
 
 ### New Features

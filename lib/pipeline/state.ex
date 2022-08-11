@@ -61,7 +61,7 @@ defmodule Pipeline.State do
 
   Note that the function must return an ok/error tuple, otherwise a `Transform.Error` error is thrown.
   """
-  @spec update(t(), Types.reducer(), Types.options()) :: t()
+  @spec update(t(), Types.step_ref(), Types.options()) :: t()
   def update(state, transform, options \\ [])
 
   def update(%__MODULE__{valid?: true, value: value} = state, {module, fun} = reducer, options) do

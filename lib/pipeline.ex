@@ -86,7 +86,7 @@ defmodule Pipeline do
   The third element is a list of functions to be used as async hooks of a pipeline. The order of execution is not
   guaranteed.
   """
-  @callback __pipeline__() :: {[Types.reducer()], [Types.hook()], [Types.async_hook()]}
+  @callback __pipeline__() :: {[Types.step_ref()], [Types.step_ref()], [Types.step_ref()]}
 
   @doc false
   defmacro __using__(_) do
@@ -106,9 +106,17 @@ defmodule Pipeline do
     quote do
       @behaviour unquote(__MODULE__)
 
+      @doc false
       @impl unquote(__MODULE__)
       def __pipeline__, do: {unquote(steps), unquote(hooks), unquote(async_hooks)}
 
+      @doc """
+      Execute the #{unquote(__CALLER__)} pipeline.
+
+      This function is a shorthand for `Pipeline.execute(#{unquote(__CALLER__)}, value, options)`
+
+      See `Pipeline.execute/3` for more details.
+      """
       @spec execute(Pipeline.Types.args(), Pipeline.Types.options()) :: Pipeline.Types.result()
       def execute(value, options \\ []) do
         apply(unquote(__MODULE__), :execute, [__MODULE__, value, options])
