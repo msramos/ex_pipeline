@@ -106,7 +106,6 @@ defmodule Pipeline do
     {async_hooks, definitions} = filter_functions(module, definitions, "_async_hook", 2)
     {hooks, _definitions} = filter_functions(module, definitions, "_hook", 2)
 
-
     docs = """
     Execute the `#{module_name}` pipeline.
 
