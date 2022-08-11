@@ -124,7 +124,7 @@ defmodule Pipeline do
 
       @doc unquote(docs)
       @spec execute(Pipeline.Types.args(), Pipeline.Types.options()) :: Pipeline.Types.result()
-      def execute(value, options \\ []) do
+      def execute(value \\ nil, options \\ []) do
         apply(unquote(__MODULE__), :execute, [__MODULE__, value, options])
       end
     end
@@ -193,8 +193,8 @@ defmodule Pipeline do
   If the given `module` does not implement the required callbacks from `Pipeline` behaviour, a `PipelineError` will
   be thrown.
   """
-  @spec execute(module(), Types.args(), Types.options()) :: Types.result()
-  def execute(module, value, options \\ []) do
+  @spec execute(module(), Types.args() | nil, Types.options()) :: Types.result()
+  def execute(module, value \\ nil, options \\ []) do
     ensure_valid_pipeline!(module)
 
     initial_state = State.new(value)

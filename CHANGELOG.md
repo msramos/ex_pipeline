@@ -1,11 +1,12 @@
 # Changelog for `ex_pipeline`
 ## v0.3.0
 
-### Changes
-- Better error messages at compile time when a step or hook has bad arity.
-
 ### New Features
 - Injected functions now have docs
+- Pipelines can now be executed without parameters
+
+### Changes
+- Better error messages at compile time when a step or hook has bad arity.
 
 ### Fixed
 - Fixed misleading type specs
