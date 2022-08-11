@@ -98,12 +98,15 @@ defmodule Pipeline do
   # "Injects the Pipeline behaviour, the two required callbacks and an `execute/2` function"
   @doc false
   defmacro __before_compile__(env) do
-    definitions = Module.definitions_in(env.module, :def)
-    {steps, definitions} = filter_functions(env.module, definitions, "_step", 2)
-    {async_hooks, definitions} = filter_functions(env.module, definitions, "_async_hook", 2)
-    {hooks, _definitions} = filter_functions(env.module, definitions, "_hook", 2)
-
     module_name = env.module |> Atom.to_string() |> String.slice(7..-1)
+
+    module = {env.module, module_name}
+    definitions = Module.definitions_in(env.module, :def)
+    {steps, definitions} = filter_functions(module, definitions, "_step", 2)
+    {async_hooks, definitions} = filter_functions(module, definitions, "_async_hook", 2)
+    {hooks, _definitions} = filter_functions(module, definitions, "_hook", 2)
+
+
     docs = """
     Execute the `#{module_name}` pipeline.
 
@@ -127,7 +130,7 @@ defmodule Pipeline do
     end
   end
 
-  defp filter_functions(module, definitions, suffix, expected_arity) do
+  defp filter_functions({module, module_name}, definitions, suffix, expected_arity) do
     {filtered, remaining} =
       Enum.reduce(definitions, {[], []}, fn {function, arity} = fa, {acc, remaining} ->
         valid_name? =
@@ -136,16 +139,24 @@ defmodule Pipeline do
           |> String.ends_with?(suffix)
 
         has_expected_args? = arity == expected_arity
+        {_, _, [line: line], _} = Module.get_definition(module, {function, arity})
 
         cond do
           valid_name? and has_expected_args? ->
-            {_, _, [line: line], _} = Module.get_definition(module, {function, arity})
             {[{module, function, line} | acc], remaining}
 
           valid_name? ->
             raise(
               PipelineError,
-              "Function #{function} does not accept #{expected_arity} parameters."
+              """
+              Bad arity on a step or hook function.
+
+              Function #{module_name}.#{function} must accept #{expected_arity} parameters, but it
+              accepts #{arity} (line #{line})
+
+              Once you use Pipeline on your module, any function that ends with _step, _hook or
+              _async_hook must always accept two parameters.
+              """
             )
 
           true ->
