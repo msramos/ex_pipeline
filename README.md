@@ -28,6 +28,10 @@ defmodule MyFeature do
     ...
   end
 
+  def error_handler(state, options) do
+    ...
+  end
+
   def reporter_async_hook(%Pipeline.State{} = state, options) do
     ...
   end
@@ -59,7 +63,7 @@ end
 
 To create a pipeline, the target module **must** `use Pipeline`, and the functions must follow some patterns.
 
-* Functions that are part of the pipeline must end with `_step`, `_hook` or `_async_hook`.
+* Functions that are part of the pipeline must end with `_step`, `_handler`, `_hook` or `_async_hook`.
 * They must accepts two parameters
 
 ### Steps
@@ -72,6 +76,17 @@ is evaluated and returned.
 * The second parameter is an optional and immutable keyword list that is passed to all steps.
 * A step **must** return an on/error tuple - `{:ok, any}` or `{:error, any}`.
 * If one step fails, the next steps are not executed.
+
+### Error handlers
+
+If any of the steps fail, the state will be _invalid_. You can customize the returned error with error handlers.
+
+* Error handlers are functions whose name end with `_handler`
+  * The first parameter is the last version of the `Pipeline.State` struct from the evaluation of the last step.
+  * The second parameter is the same optional and immutable keyword list that is passed to all step.
+* The returned value of a handler will replace the state's `error` field.
+* They are only executed the state is invalid after the execution of all steps.
+* When executed, it happens after all steps and before hooks.
 
 ### Hooks and Async Hooks
 

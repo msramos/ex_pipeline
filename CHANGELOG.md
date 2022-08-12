@@ -4,6 +4,7 @@
 ### New Features
 - Injected functions now have docs
 - Pipelines can now be executed without parameters
+- New type of step: handlers. They can update the `error` from a state if the pipeline is invalid, before hooks are called.
 
 ### Changes
 - Better error messages at compile time when a step or hook has bad arity.

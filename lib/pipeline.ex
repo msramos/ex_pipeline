@@ -74,6 +74,8 @@ defmodule Pipeline do
   alias Pipeline.State
   alias Pipeline.Types
 
+  @type ref_list :: [Types.step_ref()]
+
   @doc """
   Returns a list of tuple with three elements.
 
@@ -86,7 +88,7 @@ defmodule Pipeline do
   The third element is a list of functions to be used as async hooks of a pipeline. The order of execution is not
   guaranteed.
   """
-  @callback __pipeline__() :: {[Types.step_ref()], [Types.step_ref()], [Types.step_ref()]}
+  @callback __pipeline__() :: {ref_list(), ref_list(), ref_list(), ref_list()}
 
   @doc false
   defmacro __using__(_) do
@@ -104,7 +106,8 @@ defmodule Pipeline do
     definitions = Module.definitions_in(env.module, :def)
     {steps, definitions} = filter_functions(module, definitions, "_step", 2)
     {async_hooks, definitions} = filter_functions(module, definitions, "_async_hook", 2)
-    {hooks, _definitions} = filter_functions(module, definitions, "_hook", 2)
+    {hooks, definitions} = filter_functions(module, definitions, "_hook", 2)
+    {handlers, _definitions} = filter_functions(module, definitions, "_handler", 2)
 
     docs = """
     Execute the `#{module_name}` pipeline.
@@ -119,7 +122,8 @@ defmodule Pipeline do
 
       @doc false
       @impl unquote(__MODULE__)
-      def __pipeline__, do: {unquote(steps), unquote(hooks), unquote(async_hooks)}
+      def __pipeline__,
+        do: {unquote(steps), unquote(hooks), unquote(async_hooks), unquote(handlers)}
 
       @doc unquote(docs)
       @spec execute(Pipeline.Types.args(), Pipeline.Types.options()) :: Pipeline.Types.result()
@@ -153,8 +157,8 @@ defmodule Pipeline do
               Function #{module_name}.#{function} must accept #{expected_arity} parameters, but it
               accepts #{arity} (line #{line})
 
-              Once you use Pipeline on your module, any function that ends with _step, _hook or
-              _async_hook must always accept two parameters.
+              Once you use Pipeline on your module, any function that ends with _step, _hook , _async_hook
+              or _handler must always accept two parameters.
               """
             )
 
@@ -197,13 +201,23 @@ defmodule Pipeline do
     ensure_valid_pipeline!(module)
 
     initial_state = State.new(value)
-    {steps, hooks, async_hooks} = apply(module, :__pipeline__, [])
+    {steps, hooks, async_hooks, handlers} = apply(module, :__pipeline__, [])
 
     # Process state
     final_state =
       Enum.reduce(steps, initial_state, fn reducer, curent_state ->
         State.update(curent_state, reducer, options)
       end)
+
+    # Run error handlers if the state is invalid
+    final_state =
+      if final_state.valid? == false do
+        Enum.reduce(handlers, final_state, fn handler, current_state ->
+          State.update_error(current_state, handler, options)
+        end)
+      else
+        final_state
+      end
 
     # Launch async hooks
     Enum.each(async_hooks, fn {mod, fun} ->

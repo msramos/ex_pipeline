@@ -93,6 +93,20 @@ defmodule Pipeline.State do
   end
 
   @doc """
+  Executes the given error handler and updates the state's `error` field with the returned value.
+
+  This function only works on invalid states.
+  """
+  @spec update_error(t(), Types.step_ref(), Types.options()) :: t()
+  def update_error(state, handler, options)
+
+  def update_error(%__MODULE__{valid?: false} = state, {module, handler}, options) do
+    %__MODULE__{state | error: apply(module, handler, [state, options])}
+  end
+
+  def update_error(%__MODULE__{} = state, _, _), do: state
+
+  @doc """
   Marks the given state as invalid.
 
   Since no errors are specified, the `error` field on the state becomes a generic error string.
