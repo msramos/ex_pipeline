@@ -18,7 +18,7 @@ defmodule Pipeline do
   - Steps are executed in the same order that they are declared in the module.
   - Any function that ends with `_step` and accepts two parameters is considered a step in the pipeline.
   - A step accepts a value and must return an ok tuple with the updated value or an error tuple with the error
-   description. If one step failes, the following steps are not executed.
+   description. If one step fails, the following steps are not executed.
     - The first parameter is the value that's being transformed by each step
     - The second parameter are optional values and it's immutable
 
@@ -166,7 +166,7 @@ defmodule Pipeline do
   receive the final `%Pipeline.State{}` along with the given `options`. Their return values are ignored.
 
   Once steps and hooks are executed, the state is evaluated and then this function will returns an ok or error
-  tuple, depending wether or not the state is valid.
+  tuple, depending whether or not the state is valid.
 
   If the given `module` does not implement the required callbacks from `Pipeline` behaviour, a `PipelineError` will
   be thrown.

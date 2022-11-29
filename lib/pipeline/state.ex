@@ -17,7 +17,7 @@ defmodule Pipeline.State do
 
   * `initial_value` is the first ever value that is passed to the first step on a pipeline.
   * `value` is the current value of the pipeline
-  * `valid?` is boolean indicating wether the pipeline is still valid (true) or not (false).
+  * `valid?` is boolean indicating whether the pipeline is still valid (true) or not (false).
   * `error` the error that may have happened during the execution of the pipeline.
   * `executed_steps` a list of all steps that were executed
   """
@@ -100,14 +100,14 @@ defmodule Pipeline.State do
   ## Examples
 
       iex> %Pipeline.State{valid?: true, error: nil} |> Pipeline.State.invalidate()
-      %Pipeline.State{error: "an error occured during the execution of the pipeline", valid?: false}
+      %Pipeline.State{error: "an error occurred during the execution of the pipeline", valid?: false}
   """
   @spec invalidate(t()) :: t()
   def invalidate(%__MODULE__{} = state) do
     %__MODULE__{
       state
       | valid?: false,
-        error: "an error occured during the execution of the pipeline"
+        error: "an error occurred during the execution of the pipeline"
     }
   end
 

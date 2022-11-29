@@ -70,7 +70,7 @@ is evaluated and returned.
 * Steps are executed in the same order that they are declared.
 * The first parameter is whatever was passed to the pipeline, and each step transforms this value to the next value.
 * The second parameter is an optional and immutable keyword list that is passed to all steps.
-* A step **must** return an on/error tuple - `{:ok, any}` or `{:error, any}`.
+* A step **must** return an ok/error tuple - `{:ok, any}` or `{:error, any}`.
 * If one step fails, the next steps are not executed.
 
 ### Hooks and Async Hooks
@@ -114,7 +114,7 @@ else
 end
 ```
 
-We can make it look better by applying some code styles and get somethig like this:
+We can make it look better by applying some code styles and get something like this:
 
 ```elixir
 options = %{conn: conn}

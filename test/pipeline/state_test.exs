@@ -37,7 +37,7 @@ defmodule Pipeline.StateTest do
       end
     end
 
-    test "updates an state succesfully" do
+    test "updates an state successfully" do
       state = %State{valid?: true, value: 10, initial_value: 0, error: nil, executed_steps: []}
 
       updated_state = State.update(state, {__MODULE__.Example1, :good}, 2)
@@ -66,7 +66,7 @@ defmodule Pipeline.StateTest do
 
       updated_state = State.update(state, {__MODULE__.Example1, :error}, 2)
 
-      assert updated_state.error == "an error occured during the execution of the pipeline"
+      assert updated_state.error == "an error occurred during the execution of the pipeline"
       assert updated_state.value == 10
       assert updated_state.initial_value == 0
       assert updated_state.valid? == false
